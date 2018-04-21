@@ -1,11 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "wav.h"
 
-#define POLINOMIAL_ORDER 3
-
-#define LENGTH(arr) (sizeof(arr)/sizeof(arr[0]))
+#define POLINOMIAL_ORDER 1
 
 WAVFile* wav_fread(const char* file) {
   if (!file) return NULL;
@@ -23,8 +22,8 @@ WAVFile* wav_fread(const char* file) {
 
   result->chunk2.data = (sample_t*)malloc(result->chunk2.subchunk2Size);
   if (!result->chunk2.data) goto error;
-  size_t dataLength = result->chunk2.subchunk2Size / result->chunk1.blockAlign;
 
+  size_t dataLength = result->chunk2.subchunk2Size / result->chunk1.blockAlign;
   if (fread(result->chunk2.data, sizeof(sample_t), dataLength, wav) != dataLength) {
     free(result->chunk2.data);
     goto error;
@@ -62,39 +61,38 @@ error:
   return 3;
 }
 
-static sample_t wav_polinom(size_t order, const sample_t* data, double k, size_t x) {
-  float out = 0;
+// Lagrange polinomial
+static sample_t wav_polinomial(size_t order, const sample_t* data, double x) { // FIXME
+  double out = 0;
 
-  // Lagrange polinom
   for (size_t i = 0; i <= order; i++) {
-    float temp = 1;
+    double temp = 1;
 
     for (size_t j = 0; j <= order; j++) {
       if (i == j) continue;
-      temp *= (x / k - j) / (i - j);
+      temp *= (x - j) / (i - j);
     }
 
-    out += temp * data[i]; // BUG
+    out += temp * data[i];
   }
 
   return out;
 }
 
-static int wav_interpolate(sample_t** input, size_t* insize, double k, size_t order) {
+static int wav_interpolate(sample_t** input, size_t* insize, double k, size_t order) { // FIXME
   if (!input || !insize || k <= 0.0 || order < 1 || order >= *insize) return 3;
 
   size_t outsize = *insize * k;
   sample_t* output = (sample_t*)malloc(outsize * sizeof(sample_t));
   if (!output) return 4;
 
-  // FIXME
-  for (size_t i = 0, j = order + 1; i < outsize; i++) {
+  for (size_t i = 0; i < outsize; i++) {
+    double x = i / k;
     sample_t* data = *input;
 
-    if (j == 0) data += i - order;
-    else j--;
+    if (x > order) data += (size_t)ceil(x) - order;
 
-    output[i] = wav_polinom(order, data, k, j == 0 ? order : i);
+    output[i] = wav_polinomial(order, data, x - (data - *input));
   }
 
   free(*input);
@@ -112,7 +110,7 @@ int wav_resize(WAVFile* wav, double increaseBy) {
   if ((status = wav_interpolate(&wav->chunk2.data, &size, increaseBy, POLINOMIAL_ORDER)))
     return status;
 
-  wav->chunk2.subchunk2Size = size * sizeof(sample_t);
+  wav->chunk2.subchunk2Size = size * sizeof(sample_t); // sizeof(sample_t) and blockAlign are equal
   wav->riff.chunkSize = 36 + wav->chunk2.subchunk2Size;
 
   return 0;

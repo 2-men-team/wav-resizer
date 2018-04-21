@@ -1,6 +1,6 @@
 SRC=main.c wav/wav.c
-CPPFLAGS=-Wall -Wpedantic -Werror  -g -std=c11 -I./wav/
-LDFLAGS=
+CPPFLAGS=-Wall -Wpedantic -Werror -O3 -g -std=c11 -I./wav/
+LDFLAGS=-lm
 OFNAME=resize
 
 build:

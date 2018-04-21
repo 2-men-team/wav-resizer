@@ -1,3 +1,4 @@
 main
 resize
 *.o
+*.wav
