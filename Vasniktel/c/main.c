@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
 
   WAVFile* wav = wav_fread(infile);
   if (!wav) {
-    printf("Cannot read *.wav file\n");
+    printf("Cannot read '%s' file\n", infile);
     return 2;
   }
 

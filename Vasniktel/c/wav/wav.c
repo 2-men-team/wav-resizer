@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
+#include <math.h> // ceil
 
 #include "wav.h"
 
-#define POLINOMIAL_ORDER 1
+#define POLINOMIAL_ORDER 50
 
 WAVFile* wav_fread(const char* file) {
   if (!file) return NULL;
@@ -62,7 +62,7 @@ error:
 }
 
 // Lagrange polinomial
-static sample_t wav_polinomial(size_t order, const sample_t* data, double x) { // FIXME
+static sample_t wav_polinomial(size_t order, const sample_t* data, size_t x) {
   double out = 0;
 
   for (size_t i = 0; i <= order; i++) {
@@ -70,7 +70,7 @@ static sample_t wav_polinomial(size_t order, const sample_t* data, double x) { /
 
     for (size_t j = 0; j <= order; j++) {
       if (i == j) continue;
-      temp *= (x - j) / (i - j);
+      temp *= (x - (double)j) / (i - (double)j);
     }
 
     out += temp * data[i];
@@ -79,18 +79,18 @@ static sample_t wav_polinomial(size_t order, const sample_t* data, double x) { /
   return out;
 }
 
-static int wav_interpolate(sample_t** input, size_t* insize, double k, size_t order) { // FIXME
+static int wav_interpolate(sample_t** input, size_t* insize, double k, size_t order) {
   if (!input || !insize || k <= 0.0 || order < 1 || order >= *insize) return 3;
 
-  size_t outsize = *insize * k;
+  size_t outsize = ceil(*insize * k);
   sample_t* output = (sample_t*)malloc(outsize * sizeof(sample_t));
   if (!output) return 4;
 
   for (size_t i = 0; i < outsize; i++) {
-    double x = i / k;
+    size_t x = i / k;
     sample_t* data = *input;
 
-    if (x > order) data += (size_t)ceil(x) - order;
+    if (x > order) data += x - order;
 
     output[i] = wav_polinomial(order, data, x - (data - *input));
   }
