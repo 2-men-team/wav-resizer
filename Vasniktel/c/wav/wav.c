@@ -4,7 +4,7 @@
 
 #include "wav.h"
 
-#define POLINOMIAL_ORDER 50
+#define POLINOMIAL_ORDER 1
 
 WAVFile* wav_fread(const char* file) {
   if (!file) return NULL;
